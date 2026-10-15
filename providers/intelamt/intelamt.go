@@ -3,6 +3,7 @@ package intelamt
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"strings"
 
@@ -67,6 +68,14 @@ func WithLogger(logger logr.Logger) Option {
 	}
 }
 
+// WithTLSConfig sets the TLS configuration used when HostScheme is "https".
+// nil keeps the iamt default (no certificate verification).
+func WithTLSConfig(cfg *tls.Config) Option {
+	return func(c *Config) {
+		c.TLSConfig = cfg
+	}
+}
+
 // Config holds the configuration for an Intel AMT connection.
 type Config struct {
 	// HostScheme should be either "http" or "https".
@@ -74,6 +83,8 @@ type Config struct {
 	// Port is the port number to connect to.
 	Port   uint32
 	Logger logr.Logger
+	// TLSConfig is used for https; nil keeps the iamt default (no certificate verification).
+	TLSConfig *tls.Config
 }
 
 // New creates a new AMT connection
@@ -91,6 +102,9 @@ func New(host, user, pass string, opts ...Option) *Conn {
 		iamt.WithLogger(defaultClient.Logger),
 		iamt.WithPort(defaultClient.Port),
 		iamt.WithScheme(defaultClient.HostScheme),
+	}
+	if defaultClient.TLSConfig != nil {
+		iopts = append(iopts, iamt.WithTLSConfig(defaultClient.TLSConfig))
 	}
 	return &Conn{
 		client: iamt.NewClient(host, user, pass, iopts...),

@@ -261,6 +261,11 @@ func (c *Client) registerIntelAMTProvider() {
 		intelamt.WithHostScheme(c.providerConfig.intelamt.HostScheme),
 		intelamt.WithPort(c.providerConfig.intelamt.Port),
 	}
+	// Apply WithSecureTLS / WithHTTPClient to AMT as to every other HTTP provider: the shared
+	// client's TLS settings (InsecureSkipVerify, RootCAs) apply to the WS-MAN transport too.
+	if tp, ok := c.httpClient.Transport.(*http.Transport); ok && tp.TLSClientConfig != nil {
+		iamtOpts = append(iamtOpts, intelamt.WithTLSConfig(tp.TLSClientConfig.Clone()))
+	}
 	driverAMT := intelamt.New(c.Auth.Host, c.Auth.User, c.Auth.Pass, iamtOpts...)
 	c.Registry.Register(intelamt.ProviderName, intelamt.ProviderProtocol, intelamt.Features, nil, driverAMT)
 }
